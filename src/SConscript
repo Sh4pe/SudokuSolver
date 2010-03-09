@@ -5,8 +5,13 @@ def testRunner(env, name):
 	allTests.append('run'+name)
 	env.AlwaysBuild(env.Alias('run'+name, [], curDir+name))
 
-
-env = Environment(CPPPATH='.')
+# debug?
+debug = ARGUMENTS.get('debug', 'yes')
+cxxflags = ''
+if debug == 'yes':
+	cxxflags = '-ggdb'
+	
+env = Environment(CPPPATH='.', CXXFLAGS=cxxflags)
 env.ParseConfig("gtest-config --ldflags --libs")
 
 env.Program('sudokusolver', Split('main.cc SudokuSolver.cc'))
