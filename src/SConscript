@@ -1,0 +1,19 @@
+# always supply env!
+allTests = []
+def testRunner(env, name):
+	curDir = './src/'
+	allTests.append('run'+name)
+	env.AlwaysBuild(env.Alias('run'+name, [], curDir+name))
+
+
+env = Environment(CPPPATH='.')
+env.ParseConfig("gtest-config --ldflags --libs")
+
+env.Program('sudokusolver', Split('main.cc SudokuSolver.cc'))
+env.Program('testBoard', Split('testBoard.cc SudokuSolver.cc'))
+
+# test runners
+testRunner(env, 'testBoard')
+
+# all tests
+env.AlwaysBuild(env.Alias('tests', allTests, []))
