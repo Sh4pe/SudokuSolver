@@ -99,9 +99,24 @@ void Cell::operator=(const Cell& c) {
 	candidates_ = c.candidates_;
 };
 
+bool Cell::hasValue() {
+	return (candidates_.length() == 1);
+};
 /*
  * Implementation Board
  */
+Board::Board() {
+	// construct the iterators
+	for (int uX=0; uX < 3; uX++) {
+		for (int uY=0; uY < 3; uY++) {
+			int index = uY*3 + uX;
+			blockIterators_[index] = BlockIterator(*this, uX*3, uY*3);
+			blockEnds_[index] = BlockIterator();
+			blockEnds_[index].setEnd(*this, uX*3, uY*3);
+		}
+	}
+}
+
 Board::Board(const Board& b) {
 	for (size_t i = 0; i < 9; ++i) {
 		for (size_t j = 0; j < 9; ++j) {
@@ -140,6 +155,31 @@ void Board::setCell(int i, int j, const CellValue& v) {
 	cell_[i][j].set(v);
 };
 
+Cell& Board::getCell(int i, int j) {
+	return cell_[i][j];
+};
+
+void Board::fromString(const char* str) {
+	const char* allowed = ".0123456789";
+	for (size_t i = 0; i < 81; ++i) {
+		if (strchr(allowed, str[i]) == NULL)
+			throw BoardParseException();
+		CellValue v = charToCellValue(str[i]);
+		if ((v != UNDEFINED) && (v != EMPTY))
+			cell_[i/9][i%9].set(v);
+	}
+};
+
+const BlockIterator& Board::blockIterator(int x, int y) {
+	// int multiplication is not associtive, so the following line makes sence
+	return blockIterators_[(y/3)*3 + x/3];
+};
+
+const BlockIterator& Board::blockEnd(int x, int y) {
+	// int multiplication is not associtive, so the following line makes sence
+	return blockEnds_[(y/3)*3 + x/3];
+};
+
 /*
  * Helper function used by Board
  *	assumes that c is in {.,0, .. , 9}
@@ -160,14 +200,75 @@ const CellValue charToCellValue(const char c) {
 	return EMPTY;
 }
 
-void Board::fromString(const char* str) {
-	const char* allowed = ".0123456789";
-	for (size_t i = 0; i < 81; ++i) {
-		if (strchr(allowed, str[i]) == NULL)
-			throw BoardParseException();
-		CellValue v = charToCellValue(str[i]);
-		if ((v != UNDEFINED) && (v != EMPTY))
-			cell_[i/9][i%9].set(v);
+const char cellValueToChar(const CellValue& c) {
+	switch (c) {
+		case UNDEFINED	: return '.';
+		case ONE	: return '1';
+		case TWO	: return '2';
+		case THREE	: return '3';
+		case FOUR	: return '4';
+		case FIVE	: return '5';
+		case SIX	: return '6';
+		case SEVEN	: return '7';
+		case EIGHT	: return '8';
+		case NINE	: return '9';
+	}
+	return '.';
+};
+/*
+ * Implementation BlockIterator
+ */
+BlockIterator::BlockIterator(Board& b, int upperX, int upperY) 
+	: pos_(0),
+	  board_(&b) {
+	// fill coords_
+	for (int row=0; row<3; row++) {
+		for (int col=0; col<3; col++) {
+			coords_[3*row+col].x = upperX + row;
+			coords_[3*row+col].y = upperY + col;
+		}
+	}
+	blockId_ = upperY + upperX/3;
+};
+
+Cell& BlockIterator::operator*() const {
+	return board_->getCell(coords_[pos_].x, coords_[pos_].y);
+};
+
+BlockIterator& BlockIterator::operator++() {
+	++pos_;
+	return *this;
+};
+
+bool BlockIterator::operator==(SliceIterator& other) {
+	if (typeid(other) != typeid(BlockIterator))
+		return false;
+	// so it seems to be a BlockIterator
+	BlockIterator& oth = static_cast<BlockIterator&>(other);
+	return ((this->blockId_ == oth.blockId_) && 
+		(this->pos_ == oth.pos_) );
+};
+
+CoordType BlockIterator::getCoord() const {
+	return coords_[pos_];
+};
+
+void BlockIterator::setEnd(Board& b, int upperX, int upperY) {
+	board_ = &b;
+	blockId_ = upperY + upperX/3;
+	pos_ = 10;
+};
+ 
+/* 
+ * Implementation of helper functions
+ */
+//void reduceCandidateSetsInSlice(
+void reduceCandidateSets(Board& b, bool recursive) {
+	// find cell with value
+	for (int row=0; row < 9; row++) {
+		for (int col=0; col<9; col++) {
+			return;
+		}
 	}
 };
 

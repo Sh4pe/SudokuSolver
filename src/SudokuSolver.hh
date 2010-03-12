@@ -2,6 +2,7 @@
 #define SUDOKU_SOLVER_HH 
 
 #include <exception>
+#include <iterator>
 
 namespace SudokuSolver {
 	
@@ -9,6 +10,10 @@ namespace SudokuSolver {
 // Types
 enum CellValue { UNDEFINED = -1, EMPTY = 0, ONE = 1, TWO = 2, THREE = 3,
 				 FOUR = 4, FIVE = 5, SIX = 6, SEVEN = 7, EIGHT = 8, NINE = 9};
+typedef struct {
+	int x;
+	int y;
+} CoordType;
 
 // Exceptions
 class SudokuSolverException: public std::exception {};
@@ -47,8 +52,57 @@ public:
 	void set(const CellValue& v);
 	CandidateSet& candidates();
 	void operator=(const Cell& c);
+	bool hasValue();
 private:
 	CandidateSet candidates_;	
+};
+
+/*
+ * Slice iterators
+ */
+// Abstract (virtual) base class
+class SliceIterator {
+public:
+	typedef std::forward_iterator_tag iterator_category;
+	typedef Cell value_type;
+	typedef size_t difference_type;
+	typedef Cell* pointer;
+	typedef Cell& reference;
+
+	virtual Cell& operator*() const = 0;
+	virtual SliceIterator& operator++() = 0; // prefix ++
+	virtual bool operator==(SliceIterator& other) = 0;
+	virtual bool operator!=(SliceIterator& other) { return !this->operator==(other); }
+	// returns the coordinate of the current cell
+	virtual CoordType getCoord() const = 0;
+};
+
+// forward declare
+class Board;
+
+// BlockIterator
+class BlockIterator: public SliceIterator {
+public:
+	BlockIterator() : pos_(0), blockId_(-1), board_(0) {};
+	BlockIterator(Board& b, int upperX, int upperY);
+
+	Cell& operator*() const;
+	BlockIterator& operator++();
+	bool operator==(SliceIterator& other);
+	CoordType getCoord() const;
+
+private:
+	friend class Board;
+
+	int pos_;
+	int blockId_; // number of the block
+	CoordType coords_[9];
+	Board* board_;
+
+	// defines this iterator to be the end of the block (upperX, upperY).
+	// thought to be called by friend board after the empty constructor
+	// is called
+	void setEnd(Board& b, int upperX, int upperY);
 };
 
 /*
@@ -56,18 +110,40 @@ private:
  */
 class Board {
 public:
-	Board() {};
+	Board();
 	Board(const Board& b);
 	void operator=(const Board& b);
 	// expects buf to have length 82 (closing with \0)
 	void serialize(char* buf) const;
 	void setCell(int i, int j, const CellValue& v);
+	Cell& getCell(int i, int j);
 	// reads a board from str (same format as serialize). Assumes strlen(str) == 81
 	void fromString(const char* str);
+	const BlockIterator& blockIterator(int x, int y);
+	const BlockIterator& blockEnd(int x, int y);
 private:
 	Cell cell_[9][9];
+	BlockIterator blockIterators_[9];
+	BlockIterator blockEnds_[9];
 };
 
+/*
+ * Helper functions
+ */
+const CellValue charToCellValue(const char c);
+const char cellValueToChar(const CellValue& c);
+
+/*
+ * Solving functions
+ */
+
+/*
+ * Uses the already set fields to reduce the candidate sets of each slice
+ * (i.e. colum, row or block) the given field is in. If recursive==true,
+ * this method recursively calls itself whenever it reduces a candidate
+ * set to one element, i.e. "finds out" a new value
+ */
+void reduceCandidateSets(Board& b, bool recursive=true);
 
 } // namespace SudokuSolver
 
