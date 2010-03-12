@@ -115,8 +115,8 @@ public:
 	void operator=(const Board& b);
 	// expects buf to have length 82 (closing with \0)
 	void serialize(char* buf) const;
-	void setCell(int i, int j, const CellValue& v);
-	Cell& getCell(int i, int j);
+	void setCell(int row, int col, const CellValue& v);
+	Cell& getCell(int row, int col);
 	// reads a board from str (same format as serialize). Assumes strlen(str) == 81
 	void fromString(const char* str);
 	const BlockIterator& blockIterator(int x, int y);
@@ -132,7 +132,8 @@ private:
  */
 const CellValue charToCellValue(const char c);
 const char cellValueToChar(const CellValue& c);
-
+// prints board to std::cout
+void coutBoard(Board& b);
 /*
  * Solving functions
  */

@@ -3,6 +3,8 @@
 #include <cstring>
 #include <iostream>
 
+using namespace std;
+
 namespace SudokuSolver {
 	
 	
@@ -151,12 +153,12 @@ void Board::serialize(char* buf) const {
 	buf[81] = '\0';
 };
 
-void Board::setCell(int i, int j, const CellValue& v) {
-	cell_[i][j].set(v);
+void Board::setCell(int row, int col, const CellValue& v) {
+	cell_[row][col].set(v);
 };
 
-Cell& Board::getCell(int i, int j) {
-	return cell_[i][j];
+Cell& Board::getCell(int row, int col) {
+	return cell_[row][col];
 };
 
 void Board::fromString(const char* str) {
@@ -224,15 +226,15 @@ BlockIterator::BlockIterator(Board& b, int upperX, int upperY)
 	// fill coords_
 	for (int row=0; row<3; row++) {
 		for (int col=0; col<3; col++) {
-			coords_[3*row+col].x = upperX + row;
-			coords_[3*row+col].y = upperY + col;
+			coords_[3*row+col].x = upperX + col;
+			coords_[3*row+col].y = upperY + row;
 		}
 	}
 	blockId_ = upperY + upperX/3;
 };
 
 Cell& BlockIterator::operator*() const {
-	return board_->getCell(coords_[pos_].x, coords_[pos_].y);
+	return board_->getCell(coords_[pos_].y, coords_[pos_].x);
 };
 
 BlockIterator& BlockIterator::operator++() {
@@ -256,11 +258,35 @@ CoordType BlockIterator::getCoord() const {
 void BlockIterator::setEnd(Board& b, int upperX, int upperY) {
 	board_ = &b;
 	blockId_ = upperY + upperX/3;
-	pos_ = 10;
+	pos_ = 9;
 };
  
 /* 
  * Implementation of helper functions
+ */
+void coutBoard(Board& b) {
+	for (int threeRow=0; threeRow<3; threeRow++) {
+		cout << " ----------------- " << endl;
+		for (int row=0; row<3; row++) {
+			cout << "| ";
+			for (int j=0; j<3; j++) {
+				for (int i=0; i<3; i++) {
+					Cell& c = b.getCell(row + 3*threeRow, i+3*j);
+					if (c.hasValue())
+						cout << cellValueToChar(c.value());
+					else
+						cout << '.';
+				}
+				cout << " | ";
+			}
+			cout << endl;
+		}
+	}
+	cout << " ----------------- " << endl;
+};
+
+/*
+ * Implementation of solving functions
  */
 //void reduceCandidateSetsInSlice(
 void reduceCandidateSets(Board& b, bool recursive) {
