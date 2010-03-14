@@ -108,7 +108,7 @@ bool Cell::hasValue() {
  * Implementation Board
  */
 Board::Board() {
-	// construct the iterators
+	// construct BlockIterators
 	for (int uX=0; uX < 3; uX++) {
 		for (int uY=0; uY < 3; uY++) {
 			int index = uY*3 + uX;
@@ -116,6 +116,18 @@ Board::Board() {
 			blockEnds_[index] = BlockIterator();
 			blockEnds_[index].setEnd(*this, uX*3, uY*3);
 		}
+	}
+	// construct RowIterators
+	for (int row=0; row<9; row++) {
+		rowIterators_[row] = RowIterator(*this, 0, row);
+		rowEnds_[row] = RowIterator();
+		rowEnds_[row].setEnd(*this, 0, row);
+	}
+	// construct ColumnIterators
+	for (int column=0; column<9; column++) {
+		columnIterators_[column] = ColumnIterator(*this, column, 0);
+		columnEnds_[column] = ColumnIterator();
+		columnEnds_[column].setEnd(*this, column, 0);
 	}
 }
 
@@ -180,6 +192,22 @@ const BlockIterator& Board::blockIterator(int x, int y) {
 const BlockIterator& Board::blockEnd(int x, int y) {
 	// int multiplication is not associtive, so the following line makes sence
 	return blockEnds_[(y/3)*3 + x/3];
+};
+
+const RowIterator& Board::rowIterator(int x, int y) {
+	return rowIterators_[y];
+};
+
+const RowIterator& Board::rowEnd(int x, int y) {
+	return rowEnds_[y];
+};
+
+const ColumnIterator& Board::columnIterator(int x, int y) {
+	return columnIterators_[x];
+};
+
+const ColumnIterator& Board::columnEnd(int x, int y) {
+	return columnEnds_[x];
 };
 
 /*
@@ -248,7 +276,8 @@ bool BlockIterator::operator==(SliceIterator& other) {
 	// so it seems to be a BlockIterator
 	BlockIterator& oth = static_cast<BlockIterator&>(other);
 	return ((this->blockId_ == oth.blockId_) && 
-		(this->pos_ == oth.pos_) );
+		(this->pos_ == oth.pos_) &&
+		(this->board_ == oth.board_) );
 };
 
 CoordType BlockIterator::getCoord() const {
@@ -260,7 +289,93 @@ void BlockIterator::setEnd(Board& b, int upperX, int upperY) {
 	blockId_ = upperY + upperX/3;
 	pos_ = 9;
 };
+
+/*
+ * Implementation of RowIterator
+ */
+RowIterator::RowIterator(Board& b, int x, int y) 
+	: pos_(0),
+	  board_(&b),
+	  rowId_(y) {
+	for (int i=0; i<9; i++) {
+		coords_[i].x = i;
+		coords_[i].y = y;
+	}
+};
+
+Cell& RowIterator::operator*() const {
+	return board_->getCell(coords_[pos_].y, coords_[pos_].x);
+};
+
+RowIterator& RowIterator::operator++() {
+	++pos_;
+	return *this;
+};
  
+bool RowIterator::operator==(SliceIterator& other) {
+	if (typeid(other) != typeid(RowIterator))
+		return false;
+	// so it seems to be a RowIterator
+	RowIterator& oth = static_cast<RowIterator&>(other);
+	return ((this->rowId_ == oth.rowId_) && 
+		(this->pos_ == oth.pos_) &&
+		(this->board_ == oth.board_) );
+
+};
+
+CoordType RowIterator::getCoord() const {
+	return coords_[pos_];
+};
+
+void RowIterator::setEnd(Board& b, int x, int y) {
+	rowId_ = y;
+	pos_ = 9;
+	board_ = &b;
+};
+
+/*
+ * Implementation of ColumnIterator
+ */
+ColumnIterator::ColumnIterator(Board& b, int x, int y) 
+	: pos_(0),
+	  board_(&b),
+	  columnId_(x) {
+	for (int i=0; i<9; i++) {
+		coords_[i].x = x;
+		coords_[i].y = i;
+	}
+};
+
+Cell& ColumnIterator::operator*() const {
+	return board_->getCell(coords_[pos_].y, coords_[pos_].x);
+};
+
+ColumnIterator& ColumnIterator::operator++() {
+	++pos_;
+	return *this;
+};
+ 
+bool ColumnIterator::operator==(SliceIterator& other) {
+	if (typeid(other) != typeid(ColumnIterator))
+		return false;
+	// so it seems to be a RowIterator
+	ColumnIterator& oth = static_cast<ColumnIterator&>(other);
+	return ((this->columnId_ == oth.columnId_) && 
+		(this->pos_ == oth.pos_) &&
+		(this->board_ == oth.board_) );
+
+};
+
+CoordType ColumnIterator::getCoord() const {
+	return coords_[pos_];
+};
+
+void ColumnIterator::setEnd(Board& b, int x, int y) {
+	columnId_ = x;
+	pos_ = 9;
+	board_ = &b;
+};
+
 /* 
  * Implementation of helper functions
  */

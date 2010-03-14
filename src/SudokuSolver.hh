@@ -105,6 +105,50 @@ private:
 	void setEnd(Board& b, int upperX, int upperY);
 };
 
+// RowIterator (iterates over a row)
+class RowIterator: public SliceIterator {
+public:
+	RowIterator() : pos_(0), rowId_(-1), board_(0) {};
+	RowIterator(Board& b, int x, int y);
+	
+	Cell& operator*() const;
+	RowIterator& operator++();
+	bool operator==(SliceIterator& other);
+	CoordType getCoord() const;
+private:
+	friend class Board;
+
+	int pos_;
+	int rowId_;
+	CoordType coords_[9];
+	Board* board_;
+
+	// see BlockIterator.setEnd
+	void setEnd(Board& b, int x, int y);
+};
+
+// ColumnIterator (iterates over a column)
+class ColumnIterator: public SliceIterator {
+public:
+	ColumnIterator() : pos_(0), columnId_(-1), board_(0) {};
+	ColumnIterator(Board& b, int x, int y);
+	
+	Cell& operator*() const;
+	ColumnIterator& operator++();
+	bool operator==(SliceIterator& other);
+	CoordType getCoord() const;
+private:
+	friend class Board;
+
+	int pos_;
+	int columnId_;
+	CoordType coords_[9];
+	Board* board_;
+
+	// see BlockIterator.setEnd
+	void setEnd(Board& b, int x, int y);
+};
+
 /*
  * class Board
  */
@@ -119,12 +163,21 @@ public:
 	Cell& getCell(int row, int col);
 	// reads a board from str (same format as serialize). Assumes strlen(str) == 81
 	void fromString(const char* str);
+
 	const BlockIterator& blockIterator(int x, int y);
 	const BlockIterator& blockEnd(int x, int y);
+	const RowIterator& rowIterator(int x, int y);
+	const RowIterator& rowEnd(int x, int y);
+	const ColumnIterator& columnIterator(int x, int y);
+	const ColumnIterator& columnEnd(int x, int y);
 private:
 	Cell cell_[9][9];
 	BlockIterator blockIterators_[9];
 	BlockIterator blockEnds_[9];
+	RowIterator rowIterators_[9];
+	RowIterator rowEnds_[9];
+	ColumnIterator columnIterators_[9];
+	ColumnIterator columnEnds_[9];
 };
 
 /*
