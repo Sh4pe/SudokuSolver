@@ -3,6 +3,10 @@
 #include <cstring>
 #include <iostream>
 
+/* TODO:
+ * 	- check where you can skit the .hasValue()-Test - .value() works anyway
+ */
+
 using namespace std;
 
 namespace SudokuSolver {
@@ -245,6 +249,39 @@ const char cellValueToChar(const CellValue& c) {
 	}
 	return '.';
 };
+
+/*
+ * Implementation BoardIteratorFactory
+ */
+BoardIteratorFactory::BoardIteratorFactory() {
+	// Initialize the coordinate arrays
+	// Row coordinates
+	for (int i=0; i<9; i++) {
+		for (int col=0; col<9; col++) {
+			rowCoords_[i][col].x = col;
+			rowCoords_[i][col].y = i;
+		}
+	}
+	// Col coordinates
+	for (int i=0; i<9; i++) {
+		for (int row=0; row<9; row++) {
+			colCoords_[i][row].x = i;
+			colCoords_[i][row].y = row;
+		}
+	}
+	// Block coordinates
+	for (int upperX=0; upperX<9; upperX += 3) {
+		for (int upperY=0; upperY<9; upperY += 3) {
+			for (int row=0; row<3; row++) {
+				for (int col=0; col<3; col++) {
+					blockCoords_[upperY + upperX/3][3*row+col].x = upperX + col;
+					blockCoords_[upperY + upperX/3][3*row+col].y = upperY + row;
+				}
+			}
+		}
+	}
+}
+
 /*
  * Implementation BlockIterator
  */
@@ -399,11 +436,28 @@ void coutBoard(Board& b) {
 	}
 	cout << " ----------------- " << endl;
 };
-
-/*
- * Implementation of solving functions
+/* * Implementation of solving functions
  */
-//void reduceCandidateSetsInSlice(
+
+/* 
+ * Helper for reduceCandidateSets
+ * Drops the value of the cell (row, col) from all slices belonging to (row, col).
+ * recursive == true: does this recursively
+ */
+void dropCandidateFromSlices(Board& b, int row, int col, bool recursive = true) {
+	CellValue v = b.getCell(row, col).value();
+	assert((v != UNDEFINED) && (v != EMPTY));
+	BlockIterator endBlockIt = b.blockEnd(col, row);
+	for (BlockIterator blockIt = b.blockIterator(col, row); blockIt != endBlockIt; ++blockIt) {
+		CoordType c = blockIt.getCoord();
+		// leave (row, col) out
+		if ((c.x != col) || (c.y != row)) {
+			// go on here
+		}
+	}
+}
+
+//void reduceCandidateSetsInSlice
 void reduceCandidateSets(Board& b, bool recursive) {
 	// find cell with value
 	for (int row=0; row < 9; row++) {

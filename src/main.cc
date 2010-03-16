@@ -6,20 +6,33 @@
 using namespace std;
 using namespace SudokuSolver;
 
+class A {
+public:
+	A() { cout << "Constructor of A." << endl; };
+};
+
+class B {
+public:
+	B() { cout << "Constructor of B." << endl; };
+private:
+	static A a_;
+};
+A B::a_ = A();
+
 int main (int argc, char** argv) {
-	
-	Board b;
-	b.fromString("651.72..98...5.76.7.4..9..2...7.....49..68...5.6.1..7..7....5...4...7..83.5....2.");
-	BlockIterator endIt = b.blockEnd(0,0);
-	int i = 0;
-	for (BlockIterator it = b.blockIterator(0,0); it != endIt; ++it) {
-		//cout << "in loop! " << (i++) << endl;
-		//cout << (it != endIt) << endl;
-		if ((*it).hasValue())
-			cout << cellValueToChar((*it).value());
-		else
-			cout << '.';
+	/*int test[10][10];
+	for (int i=0; i<10; i++) {
+		test[2][i] = 124;
 	}
-	cout << endl;
+	for (int i=0; i<10; i++) {
+		test[3][i] = 1;
+	}
+	int (&arrRef)[10] = test[3];
+	for (int i=0; i<10; i++) {
+		cout << arrRef[i] << " ";
+	}
+	cout << endl;*/
+	B b1 = B();
+	B b2 = B();
 	return 0;
 }

@@ -18,6 +18,7 @@ typedef struct {
 // Exceptions
 class SudokuSolverException: public std::exception {};
 class BoardParseException: public SudokuSolverException {};
+class InvalidBoardException: public SudokuSolverException {};
 
 /*
  * class CandidateSet
@@ -55,6 +56,21 @@ public:
 	bool hasValue();
 private:
 	CandidateSet candidates_;	
+};
+
+
+/* 
+ * Factory for creating iterators used by the Board class
+ */
+class BoardIteratorFactory {
+	BoardIteratorFactory();
+
+	Hier weitermachen.
+private:
+	// "coordinate-cache" for the iterators
+	CoordType rowCoords_[9][9];
+	CoordType colCoords_[9][9];
+	CoordType blockCoords_[9][9];
 };
 
 /*
@@ -187,6 +203,7 @@ const CellValue charToCellValue(const char c);
 const char cellValueToChar(const CellValue& c);
 // prints board to std::cout
 void coutBoard(Board& b);
+
 /*
  * Solving functions
  */
