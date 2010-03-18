@@ -4,13 +4,12 @@
 #include <iostream>
 
 /* TODO:
- * 	- check where you can skit the .hasValue()-Test - .value() works anyway
+ * 	- check where you can skip the .hasValue()-Test - .value() works anyway
  */
 
 using namespace std;
 
 namespace SudokuSolver {
-	
 	
 /*
  * Implementation CandidateSet
@@ -133,6 +132,14 @@ Board::Board() {
 		columnEnds_[column] = ColumnIterator();
 		columnEnds_[column].setEnd(*this, column, 0);
 	}
+	// construct CompoundIterators
+	for (int x=0; x<9; x++) {
+		for (int y=0; y<9; y++) {
+			compoundIterators_[9*y+x] = CompoundIterator(*this, x, y);
+			compoundEnds_[9*y+x] = CompoundIterator();
+			compoundEnds_[9*y+x].setEnd(*this, x, y);
+		}
+	}
 }
 
 Board::Board(const Board& b) {
@@ -214,6 +221,14 @@ const ColumnIterator& Board::columnEnd(int x, int y) {
 	return columnEnds_[x];
 };
 
+const CompoundIterator& Board::compoundIterator(int x, int y) {
+	return compoundIterators_[9*y+x];
+};
+
+const CompoundIterator& Board::compoundEnd(int x, int y) {
+	return compoundEnds_[9*y+x];
+};
+
 /*
  * Helper function used by Board
  *	assumes that c is in {.,0, .. , 9}
@@ -251,55 +266,22 @@ const char cellValueToChar(const CellValue& c) {
 };
 
 /*
- * Implementation BoardIteratorFactory
- */
-BoardIteratorFactory::BoardIteratorFactory() {
-	// Initialize the coordinate arrays
-	// Row coordinates
-	for (int i=0; i<9; i++) {
-		for (int col=0; col<9; col++) {
-			rowCoords_[i][col].x = col;
-			rowCoords_[i][col].y = i;
-		}
-	}
-	// Col coordinates
-	for (int i=0; i<9; i++) {
-		for (int row=0; row<9; row++) {
-			colCoords_[i][row].x = i;
-			colCoords_[i][row].y = row;
-		}
-	}
-	// Block coordinates
-	for (int upperX=0; upperX<9; upperX += 3) {
-		for (int upperY=0; upperY<9; upperY += 3) {
-			for (int row=0; row<3; row++) {
-				for (int col=0; col<3; col++) {
-					blockCoords_[upperY + upperX/3][3*row+col].x = upperX + col;
-					blockCoords_[upperY + upperX/3][3*row+col].y = upperY + row;
-				}
-			}
-		}
-	}
-}
-
-/*
  * Implementation BlockIterator
  */
+// initialize static members
+bool BlockIterator::coordsInitialized_ = false;
+CoordType BlockIterator::coords_[9][9] = { 0 };
+
 BlockIterator::BlockIterator(Board& b, int upperX, int upperY) 
 	: pos_(0),
 	  board_(&b) {
 	// fill coords_
-	for (int row=0; row<3; row++) {
-		for (int col=0; col<3; col++) {
-			coords_[3*row+col].x = upperX + col;
-			coords_[3*row+col].y = upperY + row;
-		}
-	}
+	initializeCoords();
 	blockId_ = upperY + upperX/3;
 };
 
 Cell& BlockIterator::operator*() const {
-	return board_->getCell(coords_[pos_].y, coords_[pos_].x);
+	return board_->getCell(coords_[blockId_][pos_].y, coords_[blockId_][pos_].x);
 };
 
 BlockIterator& BlockIterator::operator++() {
@@ -318,7 +300,7 @@ bool BlockIterator::operator==(SliceIterator& other) {
 };
 
 CoordType BlockIterator::getCoord() const {
-	return coords_[pos_];
+	return coords_[blockId_][pos_];
 };
 
 void BlockIterator::setEnd(Board& b, int upperX, int upperY) {
@@ -327,21 +309,39 @@ void BlockIterator::setEnd(Board& b, int upperX, int upperY) {
 	pos_ = 9;
 };
 
+void BlockIterator::initializeCoords() {
+	if (BlockIterator::coordsInitialized_)
+		return;
+
+	for (int upperX=0; upperX<9; upperX += 3) {
+		for (int upperY=0; upperY<9; upperY += 3) {
+			for (int row=0; row<3; row++) {
+				for (int col=0; col<3; col++) {
+					coords_[upperY + upperX/3][3*row+col].x = upperX + col;
+					coords_[upperY + upperX/3][3*row+col].y = upperY + row;
+				}
+			}
+		}
+	}
+	BlockIterator::coordsInitialized_ = true;
+};
+
 /*
  * Implementation of RowIterator
  */
+// initialization of static members
+CoordType RowIterator::coords_[9][9] = { 0 };
+bool RowIterator::coordsInitialized_ = false;
+
 RowIterator::RowIterator(Board& b, int x, int y) 
 	: pos_(0),
 	  board_(&b),
 	  rowId_(y) {
-	for (int i=0; i<9; i++) {
-		coords_[i].x = i;
-		coords_[i].y = y;
-	}
+	initializeCoords();
 };
 
 Cell& RowIterator::operator*() const {
-	return board_->getCell(coords_[pos_].y, coords_[pos_].x);
+	return board_->getCell(coords_[rowId_][pos_].y, coords_[rowId_][pos_].x);
 };
 
 RowIterator& RowIterator::operator++() {
@@ -361,7 +361,7 @@ bool RowIterator::operator==(SliceIterator& other) {
 };
 
 CoordType RowIterator::getCoord() const {
-	return coords_[pos_];
+	return coords_[rowId_][pos_];
 };
 
 void RowIterator::setEnd(Board& b, int x, int y) {
@@ -370,21 +370,35 @@ void RowIterator::setEnd(Board& b, int x, int y) {
 	board_ = &b;
 };
 
+void RowIterator::initializeCoords() {
+	if (coordsInitialized_)
+		return;
+
+	for (int i=0; i<9; i++) {
+		for (int col=0; col<9; col++) {
+			coords_[i][col].x = col;
+			coords_[i][col].y = i;
+		}
+	}
+	RowIterator::coordsInitialized_ = true;
+};
+
 /*
  * Implementation of ColumnIterator
  */
+// initialize static members
+CoordType ColumnIterator::coords_[9][9] = { 0 };
+bool ColumnIterator::coordsInitialized_ = false;
+
 ColumnIterator::ColumnIterator(Board& b, int x, int y) 
 	: pos_(0),
 	  board_(&b),
 	  columnId_(x) {
-	for (int i=0; i<9; i++) {
-		coords_[i].x = x;
-		coords_[i].y = i;
-	}
+	initializeCoords();
 };
 
 Cell& ColumnIterator::operator*() const {
-	return board_->getCell(coords_[pos_].y, coords_[pos_].x);
+	return board_->getCell(coords_[columnId_][pos_].y, coords_[columnId_][pos_].x);
 };
 
 ColumnIterator& ColumnIterator::operator++() {
@@ -395,7 +409,7 @@ ColumnIterator& ColumnIterator::operator++() {
 bool ColumnIterator::operator==(SliceIterator& other) {
 	if (typeid(other) != typeid(ColumnIterator))
 		return false;
-	// so it seems to be a RowIterator
+	// so it seems to be a ColumnIterator
 	ColumnIterator& oth = static_cast<ColumnIterator&>(other);
 	return ((this->columnId_ == oth.columnId_) && 
 		(this->pos_ == oth.pos_) &&
@@ -404,13 +418,136 @@ bool ColumnIterator::operator==(SliceIterator& other) {
 };
 
 CoordType ColumnIterator::getCoord() const {
-	return coords_[pos_];
+	return coords_[columnId_][pos_];
 };
 
 void ColumnIterator::setEnd(Board& b, int x, int y) {
 	columnId_ = x;
 	pos_ = 9;
 	board_ = &b;
+};
+
+void ColumnIterator::initializeCoords() {
+	if (coordsInitialized_)
+		return;
+
+	for (int i=0; i<9; i++) {
+		for (int row=0; row<9; row++) {
+			coords_[i][row].x = i;
+			coords_[i][row].y = row;
+		}
+	}
+	ColumnIterator::coordsInitialized_ = true;
+};
+
+/*
+ * Implementation of CompoundIterator
+ */
+// initialize static members
+CoordType CompoundIterator::coords_[81][21] = { 0 };
+bool CompoundIterator::coordsInitialized_ = false;
+
+CompoundIterator::CompoundIterator(Board& b, int x, int y) 
+	: pos_(0),
+	  board_(&b) {
+	cellId_ = 9*y + x;
+	initializeCoords();
+};
+
+Cell& CompoundIterator::operator*() const {
+	return board_->getCell(coords_[cellId_][pos_].y, coords_[cellId_][pos_].x);
+};
+
+CompoundIterator& CompoundIterator::operator++() {
+	++pos_;
+	return *this;
+};
+ 
+bool CompoundIterator::operator==(SliceIterator& other) {
+	if (typeid(other) != typeid(CompoundIterator))
+		return false;
+	// so it seems to be a CompoundIterator
+	CompoundIterator& oth = static_cast<CompoundIterator&>(other);
+	return ((this->cellId_ == oth.cellId_) && 
+		(this->pos_ == oth.pos_) &&
+		(this->board_ == oth.board_) );
+
+};
+
+CoordType CompoundIterator::getCoord() const {
+	return coords_[cellId_][pos_];
+};
+
+void CompoundIterator::setEnd(Board& b, int x, int y) {
+	cellId_ = 9*y + x;
+	pos_ = 21;
+	board_ = &b;
+};
+
+void CompoundIterator::initializeCoords() {
+	if (coordsInitialized_)
+		return;
+
+	for (int x=0; x<9; x++) {
+		for (int y=0; y<9; y++) {
+			int upperX = 3*(x/3);
+			int upperY = 3*(y/3);
+			// add block coords first
+			for (int a=0; a<3; a++) {
+				for (int b=0; b<3; b++) {
+					coords_[y*9+x][3*a+b].x = upperX + b;
+					coords_[y*9+x][3*a+b].y = upperY + a;
+				}
+			}
+			// then the column cells
+			if (x < 3) {
+				for (int i=0; i<6; i++) {
+					coords_[y*9+x][9+i].x = i+3;
+					coords_[y*9+x][9+i].y = y;
+				}
+			}
+			else if (x < 6) { // 3 <= x < 6
+				for (int i=0; i<3; i++) {
+					coords_[y*9+x][9+i].x = i;
+					coords_[y*9+x][9+i].y = y;
+				}
+				for (int i=0; i<3; i++) {
+					coords_[y*9+x][12+i].x = 6+i;
+					coords_[y*9+x][12+i].y = y;
+				}
+			}
+			else { // 6 <= x
+				for (int i=0; i<6; i++) {
+					coords_[y*9+x][9+i].x = i;
+					coords_[y*9+x][9+i].y = y;
+				}
+			}
+			// and finally row cells
+			if (y < 3) {
+				for (int i=0; i<6; i++) {
+					coords_[y*9+x][15+i].x = x;
+					coords_[y*9+x][15+i].y = i+3;
+				}
+			}
+			else if (y < 6) { // 3 <= y < 6
+				for (int i=0; i<3; i++) {
+					coords_[y*9+x][15+i].x = x;
+					coords_[y*9+x][15+i].y = i;
+				}
+				for (int i=0; i<3; i++) {
+					coords_[y*9+x][18+i].x = x;
+					coords_[y*9+x][18+i].y = 6+i;
+				}
+			}
+			else { // 6 <= y
+				for (int i=0; i<6; i++) {
+					coords_[y*9+x][15+i].x = x;
+					coords_[y*9+x][15+i].y = i;
+				}
+			}
+		}
+	}
+	CompoundIterator::coordsInitialized_ = true;
 };
 
 /* 

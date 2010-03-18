@@ -58,21 +58,6 @@ private:
 	CandidateSet candidates_;	
 };
 
-
-/* 
- * Factory for creating iterators used by the Board class
- */
-class BoardIteratorFactory {
-	BoardIteratorFactory();
-
-	Hier weitermachen.
-private:
-	// "coordinate-cache" for the iterators
-	CoordType rowCoords_[9][9];
-	CoordType colCoords_[9][9];
-	CoordType blockCoords_[9][9];
-};
-
 /*
  * Slice iterators
  */
@@ -96,7 +81,7 @@ public:
 // forward declare
 class Board;
 
-// BlockIterator
+// BlockIterator (iterates over one block, from upper left to lower right)
 class BlockIterator: public SliceIterator {
 public:
 	BlockIterator() : pos_(0), blockId_(-1), board_(0) {};
@@ -109,19 +94,24 @@ public:
 
 private:
 	friend class Board;
-
+	
 	int pos_;
 	int blockId_; // number of the block
-	CoordType coords_[9];
+	static bool coordsInitialized_;
+	static CoordType coords_[9][9];
 	Board* board_;
 
 	// defines this iterator to be the end of the block (upperX, upperY).
 	// thought to be called by friend board after the empty constructor
 	// is called
 	void setEnd(Board& b, int upperX, int upperY);
+
+	// this is used to initialize coords_. Nice: does not need to be
+	// run in setEnd
+	static void initializeCoords();
 };
 
-// RowIterator (iterates over a row)
+// RowIterator (iterates over a row, from left to right)
 class RowIterator: public SliceIterator {
 public:
 	RowIterator() : pos_(0), rowId_(-1), board_(0) {};
@@ -136,14 +126,17 @@ private:
 
 	int pos_;
 	int rowId_;
-	CoordType coords_[9];
+	static bool coordsInitialized_;
+	static CoordType coords_[9][9];
 	Board* board_;
 
 	// see BlockIterator.setEnd
 	void setEnd(Board& b, int x, int y);
+	// see BlockIterator.initializeCoords
+	static void initializeCoords();
 };
 
-// ColumnIterator (iterates over a column)
+// ColumnIterator (iterates over a column, from top to bottom)
 class ColumnIterator: public SliceIterator {
 public:
 	ColumnIterator() : pos_(0), columnId_(-1), board_(0) {};
@@ -158,11 +151,41 @@ private:
 
 	int pos_;
 	int columnId_;
-	CoordType coords_[9];
+	static bool coordsInitialized_;
+	static CoordType coords_[9][9];
 	Board* board_;
 
 	// see BlockIterator.setEnd
 	void setEnd(Board& b, int x, int y);
+	// see BlockIterator.initializeCoords
+	static void initializeCoords();
+};
+
+// CompoundIterator (iterates exactly once over all cells which are in the same block,
+// the same row or the same column as one given cell. There is no guarantee for
+// the order of the iteration)
+class CompoundIterator: public SliceIterator {
+public:
+	CompoundIterator() : pos_(0), cellId_(-1), board_(0) {};
+	CompoundIterator(Board& b, int x, int y);
+	
+	Cell& operator*() const;
+	CompoundIterator& operator++();
+	bool operator==(SliceIterator& other);
+	CoordType getCoord() const;
+private:
+	friend class Board;
+
+	int pos_;
+	int cellId_;
+	static bool coordsInitialized_;
+	static CoordType coords_[81][21];
+	Board* board_;
+
+	// see BlockIterator.setEnd
+	void setEnd(Board& b, int x, int y);
+	// see BlockIterator.initializeCoords
+	static void initializeCoords();
 };
 
 /*
@@ -186,6 +209,8 @@ public:
 	const RowIterator& rowEnd(int x, int y);
 	const ColumnIterator& columnIterator(int x, int y);
 	const ColumnIterator& columnEnd(int x, int y);
+	const CompoundIterator& compoundIterator(int x, int y);
+	const CompoundIterator& compoundEnd(int x, int y);
 private:
 	Cell cell_[9][9];
 	BlockIterator blockIterators_[9];
@@ -194,6 +219,8 @@ private:
 	RowIterator rowEnds_[9];
 	ColumnIterator columnIterators_[9];
 	ColumnIterator columnEnds_[9];
+	CompoundIterator compoundIterators_[81];
+	CompoundIterator compoundEnds_[81];
 };
 
 /*
@@ -216,7 +243,7 @@ void coutBoard(Board& b);
  */
 void reduceCandidateSets(Board& b, bool recursive=true);
 
-} // namespace SudokuSolver
+}; // namespace SudokuSolver
 
 #endif
 

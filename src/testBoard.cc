@@ -226,6 +226,43 @@ TEST(ColumnIteratorTest, YieldsCorrectCoords) {
 	}
 }
 
+TEST(CompoundIteratorTest, TraversesCorrectCells) {
+	for (int x=0; x<9; x++) {
+		for (int y=0; y<9; y++) {
+			char expected[82];
+			strncpy(expected, 
+			".................................................................................", 82);
+			// change row
+			for (int i=0; i<9; i++) {
+				expected[9*y + i] = '1';
+			}
+			// change column
+			for (int i=0; i<9; i++) {
+				expected[9*i + x] = '1';
+			}
+			// change block
+			int upperX = (x/3)*3;
+			int upperY = (y/3)*3;
+			for (int a=0; a<3; a++) {
+				for (int b=0; b<3; b++) {
+					expected[9*(upperY+b) + upperX + a] = '1';
+				}
+			}
+			//cout << expected << " (expected)" << endl;
+			// now use the iterator
+			Board b;
+			CompoundIterator endIt = b.compoundEnd(x,y);
+			for (CompoundIterator it = b.compoundIterator(x,y); it != endIt; ++it) {
+				(*it).set(ONE);
+			}
+			char got[82];
+			b.serialize(got);
+			//cout << got << " (got)" << endl;
+			ASSERT_STREQ(expected, got);
+		}
+	}
+}
+
 int main(int argc, char **argv) {
 	::testing::InitGoogleTest(&argc, argv);
 	return RUN_ALL_TESTS();
