@@ -7,6 +7,7 @@
 /* TODO:
  * 	- check where you can skip the .hasValue()-Test - .value() works anyway
  *	- document which functions throw exceptions
+ *	- clean up the (row, col) (x,y) confusion
  */
 
 using namespace std;
@@ -757,6 +758,25 @@ void solveBoardRecursively(Board& currentBoard, list<Board>& solutions, unsigned
 void solveBoard(const Board& b, list<Board>& solutions, unsigned int maxSolutions) {
 	Board copy = b;
 	solveBoardRecursively(copy, solutions, maxSolutions);
+};
+
+bool boardValid(Board& b) {
+	for (int x=0; x<9; x++) {
+		for (int y=0; y<9; y++) {
+			CellValue v = b.getCell(y,x).value();
+			if ((v != UNDEFINED) && (v != EMPTY)) {
+				CompoundIterator endIt = b.compoundEnd(x,y);
+				for (CompoundIterator it = b.compoundIterator(x,y); it != endIt; ++it) {
+					CoordType c = it.getCoord();
+					if ((c.x != x) && (c.y != y) && 
+					    ((*it).value() == v)) {
+						return false;
+					}
+				}
+			}
+		}
+	}
+	return true;
 };
 
 } // namespace SudokuSolver

@@ -305,6 +305,11 @@ void reduceCandidateSets(Board& b, bool recursive=true);
  */
 void solveBoard(const Board& b, std::list<Board>& solutions, unsigned int maxSolutions = 1);
 
+/*
+ * Checks wheather the board b is valid
+ */
+bool boardValid(Board& b);
+
 }; // namespace SudokuSolver
 
 #endif

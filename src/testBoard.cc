@@ -1,6 +1,7 @@
 #include <gtest/gtest.h>
 #include <iostream>
 #include <fstream>
+#include <string>
 #include "SudokuSolver.hh"
 
 /*
@@ -347,29 +348,40 @@ TEST(ReduceCandidateTest, ReduceCandidateSetIdempotent) {
 	}
 }
 
-// Tests wheather the solutions found by solve...() are all different
-TEST(SolveBoardTest, AllSolutionsDifferent) {
+// Tests wheather the solutions found by solve...() are all different and valid
+TEST(SolveBoardTest, AllSolutionsDifferentAndValid) {
 	ifstream validBoards("data/validBoards");
 	if (!validBoards) {
 		cout << "Could not find data/validBoards!" << endl;
 		ASSERT_TRUE(false);
 	}	
 	char buffer[2048];
+	int c1 = 0;
 	while (validBoards.getline(buffer, 2048)) {
+		c1++;
 		char board[82];
 		strncpy(board, buffer, 81);
 		Board b;
 		b.fromString(board);
 		list<Board> l;
-		solveBoard(b, l, 20);
+		solveBoard(b, l, 10);
 		typedef list<Board>::iterator LIT;
 		LIT endIt = l.end();
-		vector<char[82]> v;
-		string benutzen
+		vector<string> v;
+		int c2 = 0;
 		for (LIT it = l.begin(); it != endIt; ++it) {
+			c2++;
+			cout << "c1, c2= " << c1 << ", " << c2 << endl;
+			ASSERT_TRUE(boardValid(*it));
 			char str[82];
 			(*it).serialize(str);
-			v.push_back(str);
+			string s = str;
+			v.push_back(s);
+			for (int i=0; i<v.size(); i++) {
+				for (int j=i+1; j<v.size(); j++) {
+					ASSERT_NE(v[i], v[j]);
+				}
+			}
 		}
 	}
 }
