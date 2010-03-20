@@ -2,21 +2,65 @@
 #include <assert.h>
 #include <cstring>
 #include <iostream>
+#include <list>
 
 /* TODO:
  * 	- check where you can skip the .hasValue()-Test - .value() works anyway
+ *	- document which functions throw exceptions
  */
 
 using namespace std;
 
 namespace SudokuSolver {
-	
+
+
+/*
+ * Implementation CandidateIterator
+ */
+CandidateIterator::CandidateIterator(CandidateSet& c)
+	: cSet_(&c),
+	  pos_(0),
+	  len_(0) {
+	for (int i=0; i<9; i++) {
+		indices_[i] = -1;
+	}
+	for (int i=0; i<9; i++) {
+		if ((c.values_[i] != UNDEFINED) && (c.values_[i] != EMPTY)) {
+			indices_[len_++] = i;
+		}
+	}
+};
+
+CellValue& CandidateIterator::operator*() const {
+	return cSet_->values_[indices_[pos_]];
+};
+
+CandidateIterator& CandidateIterator::operator++() {
+	++pos_;
+	return *this;
+}; 
+
+bool CandidateIterator::operator==(CandidateIterator& other) {
+	return ((cSet_ == other.cSet_) &&
+	 	(pos_ == other.pos_));
+};
+
+void CandidateIterator::setEnd(CandidateSet& c) {
+	cSet_ = &c;
+	for (int i=0; i<9; i++) {
+		if ((c.values_[i] != UNDEFINED) && (c.values_[i] != EMPTY)) {
+			pos_++;
+		}
+	}
+	pos_++;
+};
+
 /*
  * Implementation CandidateSet
  */
 CandidateSet::CandidateSet() {
 	for (size_t i = 0; i < 9; ++i) {
-		values_[i] = CellValue(i);
+		values_[i] = CellValue(i+1);
 	}
 };
 
@@ -52,12 +96,12 @@ int CandidateSet::length() const {
 		if ((values_[i] != UNDEFINED) && (values_[i] != EMPTY))
 			++len;
 	}
-	assert(len > 0);
+	//assert(len > 0);
 	return len;
 };
 
 inline bool CandidateSet::isEmpty() const {
-	return (this->length() > 1);
+	return !(this->length() > 0);
 };
 
 CellValue CandidateSet::firstValue() const {
@@ -80,6 +124,17 @@ void CandidateSet::operator=(const CandidateSet& c) {
 	for (size_t i = 0; i < 9; ++i) {
 		values_[i] = c.values_[i];
 	}
+};
+
+CandidateIterator CandidateSet::begin() {
+	CandidateIterator c(*this);
+	return c;
+};
+
+CandidateIterator CandidateSet::end() {
+	CandidateIterator c;
+	c.setEnd(*this);
+	return c;
 };
 
 /*
@@ -111,38 +166,11 @@ bool Cell::hasValue() {
  * Implementation Board
  */
 Board::Board() {
-	// construct BlockIterators
-	for (int uX=0; uX < 3; uX++) {
-		for (int uY=0; uY < 3; uY++) {
-			int index = uY*3 + uX;
-			blockIterators_[index] = BlockIterator(*this, uX*3, uY*3);
-			blockEnds_[index] = BlockIterator();
-			blockEnds_[index].setEnd(*this, uX*3, uY*3);
-		}
-	}
-	// construct RowIterators
-	for (int row=0; row<9; row++) {
-		rowIterators_[row] = RowIterator(*this, 0, row);
-		rowEnds_[row] = RowIterator();
-		rowEnds_[row].setEnd(*this, 0, row);
-	}
-	// construct ColumnIterators
-	for (int column=0; column<9; column++) {
-		columnIterators_[column] = ColumnIterator(*this, column, 0);
-		columnEnds_[column] = ColumnIterator();
-		columnEnds_[column].setEnd(*this, column, 0);
-	}
-	// construct CompoundIterators
-	for (int x=0; x<9; x++) {
-		for (int y=0; y<9; y++) {
-			compoundIterators_[9*y+x] = CompoundIterator(*this, x, y);
-			compoundEnds_[9*y+x] = CompoundIterator();
-			compoundEnds_[9*y+x].setEnd(*this, x, y);
-		}
-	}
+	initIterators();
 }
 
 Board::Board(const Board& b) {
+	initIterators();
 	for (size_t i = 0; i < 9; ++i) {
 		for (size_t j = 0; j < 9; ++j) {
 			cell_[i][j] = b.cell_[i][j];
@@ -194,6 +222,16 @@ void Board::fromString(const char* str) {
 			cell_[i/9][i%9].set(v);
 	}
 };
+	
+bool Board::isFull() {
+	for (int i=0; i<9; i++) {
+		for (int j=0; j<9; j++) {
+			if (!cell_[i][j].hasValue())
+				return false;
+		}
+	}
+	return true;
+};
 
 const BlockIterator& Board::blockIterator(int x, int y) {
 	// int multiplication is not associtive, so the following line makes sence
@@ -227,6 +265,38 @@ const CompoundIterator& Board::compoundIterator(int x, int y) {
 
 const CompoundIterator& Board::compoundEnd(int x, int y) {
 	return compoundEnds_[9*y+x];
+};
+
+void Board::initIterators() {
+	// construct BlockIterators
+	for (int uX=0; uX < 3; uX++) {
+		for (int uY=0; uY < 3; uY++) {
+			int index = uY*3 + uX;
+			blockIterators_[index] = BlockIterator(*this, uX*3, uY*3);
+			blockEnds_[index] = BlockIterator();
+			blockEnds_[index].setEnd(*this, uX*3, uY*3);
+		}
+	}
+	// construct RowIterators
+	for (int row=0; row<9; row++) {
+		rowIterators_[row] = RowIterator(*this, 0, row);
+		rowEnds_[row] = RowIterator();
+		rowEnds_[row].setEnd(*this, 0, row);
+	}
+	// construct ColumnIterators
+	for (int column=0; column<9; column++) {
+		columnIterators_[column] = ColumnIterator(*this, column, 0);
+		columnEnds_[column] = ColumnIterator();
+		columnEnds_[column].setEnd(*this, column, 0);
+	}
+	// construct CompoundIterators
+	for (int x=0; x<9; x++) {
+		for (int y=0; y<9; y++) {
+			compoundIterators_[9*y+x] = CompoundIterator(*this, x, y);
+			compoundEnds_[9*y+x] = CompoundIterator();
+			compoundEnds_[9*y+x].setEnd(*this, x, y);
+		}
+	}
 };
 
 /*
@@ -573,7 +643,8 @@ void coutBoard(Board& b) {
 	}
 	cout << " ----------------- " << endl;
 };
-/* * Implementation of solving functions
+/* 
+ * Implementation of solving functions
  */
 
 /* 
@@ -584,12 +655,32 @@ void coutBoard(Board& b) {
 void dropCandidateFromSlices(Board& b, int row, int col, bool recursive = true) {
 	CellValue v = b.getCell(row, col).value();
 	assert((v != UNDEFINED) && (v != EMPTY));
-	BlockIterator endBlockIt = b.blockEnd(col, row);
-	for (BlockIterator blockIt = b.blockIterator(col, row); blockIt != endBlockIt; ++blockIt) {
-		CoordType c = blockIt.getCoord();
-		// leave (row, col) out
-		if ((c.x != col) || (c.y != row)) {
-			// go on here
+	list<CoordType> recur;
+	CompoundIterator endIt = b.compoundEnd(col, row);
+	for (CompoundIterator it = b.compoundIterator(col, row); it != endIt; ++it) {
+		CoordType c = it.getCoord();
+		Cell& cell = *it;
+		// leave (col, row) out
+		if ( ((c.x != col) || (c.y != row)) &&
+		     (!cell.hasValue()) ) {
+			cell.candidates().remove(v);
+			// if the cell had the value v before and is now empty,
+			// the board cannot be valid
+			if (cell.candidates().isEmpty()) {
+				throw InvalidBoardException();
+			}
+			// recursion is done after all candidates are dropped
+			if (recursive && (cell.hasValue())) {
+				recur.push_front(c);
+			}
+		}
+	}
+	// perform recursion
+	if (recursive) {
+		list<CoordType>::iterator endIt = recur.end();
+		for (list<CoordType>::iterator it = recur.begin(); it != endIt; ++it) {
+			CoordType c = *it;
+			dropCandidateFromSlices(b, c.y, c.x, true);
 		}
 	}
 }
@@ -599,9 +690,73 @@ void reduceCandidateSets(Board& b, bool recursive) {
 	// find cell with value
 	for (int row=0; row < 9; row++) {
 		for (int col=0; col<9; col++) {
-			return;
+			CellValue v = b.getCell(row, col).value();
+			if ((v != EMPTY) && (v != UNDEFINED)) {
+				dropCandidateFromSlices(b, row, col, recursive);
+			}
 		}
 	}
+};
+
+/*
+ * Helper for solveBoard
+ */
+void solveBoardRecursively(Board& currentBoard, list<Board>& solutions, unsigned int maxSolutions) {
+	if (!(solutions.size() < maxSolutions)) {
+		return;
+	}
+	// reduce the candidate sets of currentBoard
+	reduceCandidateSets(currentBoard, true);
+	if (currentBoard.isFull()) {
+		solutions.push_front(currentBoard);
+	}
+	else {
+		/*
+		 * The board is not full, so find the cell with the least possible
+		 * candidates...
+		 */
+		int leastCandidates = 100;
+		CoordType leastPos;
+		for (int x=0; x<9; x++) {
+			for (int y=0; y<9; y++) {
+				int len = currentBoard.getCell(y,x).candidates().length();
+				// len == 1 means that the cell already has a value
+				if ((len > 1) && (len < leastCandidates)) {
+					leastCandidates = len;
+					leastPos.x = x;
+					leastPos.y = y;
+				}
+			}
+		}
+		// ...and start guessing
+		CandidateSet& cs = currentBoard.getCell(leastPos.y, leastPos.x).candidates();
+		CandidateIterator endIt = cs.end();
+		bool everyGuessInvalid = true;
+		for (CandidateIterator it = cs.begin(); it != endIt; ++it) {
+			Board copy = currentBoard;
+			copy.setCell(leastPos.y, leastPos.x, *it);
+			bool thrown = false;
+			try {
+				solveBoardRecursively(copy, solutions, maxSolutions);
+			}
+			catch (InvalidBoardException& e) {
+				// this guess turned out wrong, so ignore it
+				thrown = true;
+			}
+			if (!thrown) {
+				everyGuessInvalid = false;
+			}
+		}
+		// If every guess is invalid, the whole branch is a dead end
+		if (everyGuessInvalid) {
+			throw InvalidBoardException();
+		}
+	}
+};
+
+void solveBoard(const Board& b, list<Board>& solutions, unsigned int maxSolutions) {
+	Board copy = b;
+	solveBoardRecursively(copy, solutions, maxSolutions);
 };
 
 } // namespace SudokuSolver

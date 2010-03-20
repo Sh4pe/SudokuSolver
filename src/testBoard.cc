@@ -2,6 +2,12 @@
 #include <iostream>
 #include <fstream>
 #include "SudokuSolver.hh"
+
+/*
+ * TODO:
+ *	- refactor test code!
+ */
+
 using namespace std;
 using namespace SudokuSolver;
 
@@ -259,6 +265,111 @@ TEST(CompoundIteratorTest, TraversesCorrectCells) {
 			b.serialize(got);
 			//cout << got << " (got)" << endl;
 			ASSERT_STREQ(expected, got);
+		}
+	}
+}
+
+TEST(CandidateIteratorTest, IteratesOverCorrectNumberOfCells) {
+	ifstream validBoards("data/validBoards");
+	if (!validBoards) {
+		cout << "Could not find data/validBoards!" << endl;
+		ASSERT_TRUE(false);
+	}	
+	char buffer[2048];
+	while (validBoards.getline(buffer, 2048)) {
+		char board[82];
+		strncpy(board, buffer, 81);
+		Board b;
+		b.fromString(board);
+		//coutBoard(b);
+		//cout << b.getCell(0,0).candidates().length() << endl;
+		for (int x=0; x<9; x++) {
+			for (int y=0; y<9; y++) {
+				CandidateSet& cs = b.getCell(y,x).candidates();
+				int len = cs.length();
+				CandidateIterator endIt = cs.end();
+				int l = 0;
+				for (CandidateIterator it = cs.begin(); it != endIt; ++it) {
+					l++;
+					// *it should neither be UNDEFINED nor EMPTY
+					ASSERT_NE(*it, UNDEFINED);
+					ASSERT_NE(*it, EMPTY);
+				}
+				ASSERT_EQ(len, l);
+			}
+		}
+	}
+}
+
+TEST(ReduceCandidateTest, ValidBoardsAreValid) {
+	ifstream validBoards("data/validBoards");
+	if (!validBoards) {
+		cout << "Could not find data/validBoards!" << endl;
+		ASSERT_TRUE(false);
+	}	
+	char buffer[2048];
+	while (validBoards.getline(buffer, 2048)) {
+		char board[82];
+		strncpy(board, buffer, 81);
+		Board b;
+		b.fromString(board);
+		//coutBoard(b);
+		try {
+			reduceCandidateSets(b, true);
+		}
+		catch (InvalidBoardException) {
+			ASSERT_TRUE(false);
+		}
+	}	
+}
+
+// Let f be reduceCandidateSets. This tests wheather f^2 = f
+TEST(ReduceCandidateTest, ReduceCandidateSetIdempotent) {
+	ifstream validBoards("data/validBoards");
+	if (!validBoards) {
+		cout << "Could not find data/validBoards!" << endl;
+		ASSERT_TRUE(false);
+	}	
+	char buffer[2048];
+	while (validBoards.getline(buffer, 2048)) {
+		char board[82];
+		strncpy(board, buffer, 81);
+		Board b;
+		b.fromString(board);
+		//coutBoard(b);
+		reduceCandidateSets(b, true);
+		char buf1[82];
+		b.serialize(buf1);
+		reduceCandidateSets(b, true);
+		char buf2[82];
+		b.serialize(buf2);
+		ASSERT_STREQ(buf1, buf2);
+	}
+}
+
+// Tests wheather the solutions found by solve...() are all different
+TEST(SolveBoardTest, AllSolutionsDifferent) {
+	ifstream validBoards("data/validBoards");
+	if (!validBoards) {
+		cout << "Could not find data/validBoards!" << endl;
+		ASSERT_TRUE(false);
+	}	
+	char buffer[2048];
+	while (validBoards.getline(buffer, 2048)) {
+		char board[82];
+		strncpy(board, buffer, 81);
+		Board b;
+		b.fromString(board);
+		list<Board> l;
+		solveBoard(b, l, 20);
+		typedef list<Board>::iterator LIT;
+		LIT endIt = l.end();
+		vector<char[82]> v;
+		string benutzen
+		for (LIT it = l.begin(); it != endIt; ++it) {
+			char str[82];
+			(*it).serialize(str);
+			v.push_back(str);
 		}
 	}
 }
