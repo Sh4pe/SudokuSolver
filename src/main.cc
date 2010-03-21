@@ -7,29 +7,18 @@ using namespace std;
 using namespace SudokuSolver;
 
 int main (int argc, char** argv) {
-	ifstream validBoards("data/validBoards");
-	if (!validBoards) {
-		cout << "Could not find data/validBoards!" << endl;
-		return 1;
-	}	
-	char buffer[2048];
-	int i = 0;
-	while (validBoards.getline(buffer, 2048)) {
-		char board[82];
-		strncpy(board, buffer, 81);
-		Board b;
-		b.fromString(board);
-		cout << "before: " << endl;
-		coutBoard(b);
-		list<Board> l;
-		solveBoard(b, l, 5);
-		cout << "after: (" << l.size() << " solutions found " << endl;
-		typedef list<Board>::iterator IT;
-		IT endIt = l.end();
-		for (IT it = l.begin(); it != endIt; ++it) {
-			coutBoard(*it);
-			cout << endl;
-		}
+
+	Board b;
+	b.fromString("85...24..72......9..4.........1.7..23.5...9...4...........8..7..17..........36.4.");
+	coutBoard(b);
+	list<Board> l;
+	solveBoard(b, l, 10);
+	cout << "solution(s): " << endl << endl;
+	list<Board>::iterator endIt = l.end();
+	for (list<Board>::iterator it = l.begin(); it != endIt; ++it) {
+		cout << endl;
+		coutBoard(*it);
 	}
+
 	return 0;
 }

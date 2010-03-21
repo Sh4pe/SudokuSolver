@@ -648,6 +648,27 @@ void coutBoard(Board& b) {
  * Implementation of solving functions
  */
 
+/*
+ * Helper for dropCandidatesFromSlices and boardValid
+ * Gets the CellValue of b's (row, col) cell and checks, wheather whis value
+ * occurs in one of the slices (row, col) is in. Returns true in this case,
+ * otherwise false
+ */ 
+bool sliceCollision(Board& b, int row, int col) {
+	CellValue v = b.getCell(row, col).value();
+	if ((v != UNDEFINED) && (v != EMPTY)) {
+		CompoundIterator endIt = b.compoundEnd(col, row);
+		for (CompoundIterator it = b.compoundIterator(col, row); it != endIt; ++it) {
+			CoordType c = it.getCoord();
+			if ((c.x != col) && (c.y != row) && 
+			    ((*it).value() == v)) {
+				return true;
+			}
+		}
+	}
+	return false;
+}
+
 /* 
  * Helper for reduceCandidateSets
  * Drops the value of the cell (row, col) from all slices belonging to (row, col).
@@ -670,9 +691,16 @@ void dropCandidateFromSlices(Board& b, int row, int col, bool recursive = true) 
 			if (cell.candidates().isEmpty()) {
 				throw InvalidBoardException();
 			}
-			// recursion is done after all candidates are dropped
-			if (recursive && (cell.hasValue())) {
-				recur.push_front(c);
+			if (cell.hasValue()) {
+				// if this value is already set in the slice, the board
+				// cannot be valid
+				if (sliceCollision(b, c.y, c.x)) {
+					throw InvalidBoardException();
+				}
+				// recursion is done after all candidates are dropped
+				if (recursive) {
+					recur.push_front(c);
+				}
 			}
 		}
 	}
@@ -763,16 +791,8 @@ void solveBoard(const Board& b, list<Board>& solutions, unsigned int maxSolution
 bool boardValid(Board& b) {
 	for (int x=0; x<9; x++) {
 		for (int y=0; y<9; y++) {
-			CellValue v = b.getCell(y,x).value();
-			if ((v != UNDEFINED) && (v != EMPTY)) {
-				CompoundIterator endIt = b.compoundEnd(x,y);
-				for (CompoundIterator it = b.compoundIterator(x,y); it != endIt; ++it) {
-					CoordType c = it.getCoord();
-					if ((c.x != x) && (c.y != y) && 
-					    ((*it).value() == v)) {
-						return false;
-					}
-				}
+			if (sliceCollision(b, y, x)) {
+				return false;
 			}
 		}
 	}

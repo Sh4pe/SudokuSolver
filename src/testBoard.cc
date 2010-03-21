@@ -356,9 +356,7 @@ TEST(SolveBoardTest, AllSolutionsDifferentAndValid) {
 		ASSERT_TRUE(false);
 	}	
 	char buffer[2048];
-	int c1 = 0;
 	while (validBoards.getline(buffer, 2048)) {
-		c1++;
 		char board[82];
 		strncpy(board, buffer, 81);
 		Board b;
@@ -368,10 +366,7 @@ TEST(SolveBoardTest, AllSolutionsDifferentAndValid) {
 		typedef list<Board>::iterator LIT;
 		LIT endIt = l.end();
 		vector<string> v;
-		int c2 = 0;
 		for (LIT it = l.begin(); it != endIt; ++it) {
-			c2++;
-			cout << "c1, c2= " << c1 << ", " << c2 << endl;
 			ASSERT_TRUE(boardValid(*it));
 			char str[82];
 			(*it).serialize(str);
