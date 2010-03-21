@@ -1,3 +1,25 @@
+/* Copyright (c) 2010 David Nies
+ * http://www.twitter.com/Sh4pe
+ *  
+ * Permission is hereby granted, free of charge, to any person obtaining
+ * a copy of this software and associated documentation files (the
+ * "Software"), to deal in the Software without restriction, including
+ * without limitation the rights to use, copy, modify, merge, publish,
+ * distribute, sublicense, and/or sell copies of the Software, and to
+ * permit persons to whom the Software is furnished to do so, subject to
+ * the following conditions:
+ *   
+ * The above copyright notice and this permission notice shall be
+ * included in all copies or substantial portions of the Software.
+ *    
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+ * EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+ * MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+ * NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE
+ * LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION
+ * OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION
+ * WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+ */
 #ifndef SUDOKU_SOLVER_HH
 #define SUDOKU_SOLVER_HH 
 
@@ -34,17 +56,21 @@ class CandidateSet;
  */
 class CandidateIterator {
 public:
+	// standard iterator typedefs
 	typedef std::forward_iterator_tag iterator_category;
 	typedef CellValue value_type;
 	typedef size_t difference_type;
 	typedef CellValue* pointer;
 	typedef CellValue& reference;
 
-	CandidateIterator() : pos_(-1), cSet_(0), len_(-1) {};
+	CandidateIterator() : pos_(-1), len_(-1), cSet_(0) {};
 	CandidateIterator(CandidateSet& c);
 
+	// used for getting the value 
 	CellValue& operator*() const;
-	CandidateIterator& operator++(); // prefix ++
+	// prefix ++
+	CandidateIterator& operator++(); 
+	// comparison operators needed in for loops
 	bool operator==(CandidateIterator& other);
 	bool operator!=(CandidateIterator& other) { return !this->operator==(other); }
 
@@ -72,8 +98,11 @@ public:
 	CandidateSet(const CandidateSet& s);
 	// v in set?
 	bool contains(CellValue& v) const;
+	// remove v from set
 	void remove(CellValue& v);
+	// number of elements in set
 	int length() const;
+	// length() == 0?
 	inline bool isEmpty() const;
 	// return first value that is neither UNDEFINED nor EMPTY
 	CellValue firstValue() const;
@@ -97,10 +126,14 @@ private:
 class Cell {
 public:
 	Cell() {};
+	// returns the value of the cell, UNDEFINED or EMPTY if there is no value yet
 	CellValue value() const;
+	// sets the value of the cell to v
 	void set(const CellValue& v);
+	// returns the underlying CandidateSet 
 	CandidateSet& candidates();
 	void operator=(const Cell& c);
+	// true if value() is neither UNDEFINED nor EMPTY
 	bool hasValue();
 private:
 	CandidateSet candidates_;	
@@ -112,14 +145,18 @@ private:
 // Abstract (virtual) base class
 class SliceIterator {
 public:
+	// standard iterator typedefs
 	typedef std::forward_iterator_tag iterator_category;
 	typedef Cell value_type;
 	typedef size_t difference_type;
 	typedef Cell* pointer;
 	typedef Cell& reference;
 
+	// used to get the Cell the iterator is refering to
 	virtual Cell& operator*() const = 0;
-	virtual SliceIterator& operator++() = 0; // prefix ++
+	// prefix ++
+	virtual SliceIterator& operator++() = 0; 
+	// comparison operators, needed for for loops
 	virtual bool operator==(SliceIterator& other) = 0;
 	virtual bool operator!=(SliceIterator& other) { return !this->operator==(other); }
 	// returns the coordinate of the current cell
@@ -128,8 +165,9 @@ public:
 
 // forward declare
 class Board;
-
-// BlockIterator (iterates over one block, from upper left to lower right)
+/*
+ * BlockIterator (iterates over one block, from upper left to lower right)
+ */
 class BlockIterator: public SliceIterator {
 public:
 	BlockIterator() : pos_(0), blockId_(-1), board_(0) {};
@@ -159,7 +197,9 @@ private:
 	static void initializeCoords();
 };
 
-// RowIterator (iterates over a row, from left to right)
+/*
+ * RowIterator (iterates over a row, from left to right)
+ */
 class RowIterator: public SliceIterator {
 public:
 	RowIterator() : pos_(0), rowId_(-1), board_(0) {};
@@ -184,7 +224,9 @@ private:
 	static void initializeCoords();
 };
 
-// ColumnIterator (iterates over a column, from top to bottom)
+/*
+ * ColumnIterator (iterates over a column, from top to bottom)
+ */
 class ColumnIterator: public SliceIterator {
 public:
 	ColumnIterator() : pos_(0), columnId_(-1), board_(0) {};
@@ -246,15 +288,25 @@ public:
 	// copy constructor
 	Board(const Board& b);
 	void operator=(const Board& b);
-	// expects buf to have length 82 (closing with \0)
+	/*
+	 * Writes the board into the string buf, assumes that strlen(buf) >= 81.
+	 * The board is written rowwise, from top to bottom, and each row is
+	 * written from left to right
+	 */
 	void serialize(char* buf) const;
+	// sets the Cell at (row, col) to v
 	void setCell(int row, int col, const CellValue& v);
+	// returns the value of the Cell at (row, col)
 	Cell& getCell(int row, int col);
 	// reads a board from str (same format as serialize). Assumes strlen(str) == 81
 	void fromString(const char* str);
 	// does every cell have a value yet?
 	bool isFull();
 
+	/*
+	 * These methods are used to get the iterators for the cell (y,x) and the endpoints
+	 * of the iteration ( ...End(..) )
+	 */
 	const BlockIterator& blockIterator(int x, int y);
 	const BlockIterator& blockEnd(int x, int y);
 	const RowIterator& rowIterator(int x, int y);
@@ -283,8 +335,8 @@ private:
  */
 const CellValue charToCellValue(const char c);
 const char cellValueToChar(const CellValue& c);
-// prints board to std::cout
-void coutBoard(Board& b);
+// prints board to std::cout, appends prefix to the left of each line
+void coutBoard(Board& b, const char* prefix = "");
 
 /*
  * Solving functions
@@ -301,7 +353,8 @@ void reduceCandidateSets(Board& b, bool recursive=true);
 /* 
  * Solves the board b. Inserts every solution into solutions, stops if it has
  * found maxSolutions solutions. If you let maxSolutions = n and get a list
- * solutions with m < n entries, you can be sure that these are all solutions
+ * solutions with m < n entries, you can be sure that these are all solutions.
+ * If the board is not solvable, this method throws a InvalidBoardException.
  */
 void solveBoard(const Board& b, std::list<Board>& solutions, unsigned int maxSolutions = 1);
 

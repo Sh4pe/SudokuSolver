@@ -1,0 +1,86 @@
+SudokuSolver - Readme
+=====================
+
+0. What is SudokuSolver
+
+	SudokuSolver is meant to be a small tool for solving 9x9 sudokus. 
+	The heart of this program are the files src/SudokuSolver.hh and
+	src/SudokuSolver.cc, whrere you can find the classes and helper-
+	functions to solve sudokus. If you want to use SudokuSolver in 
+	your project, simply add these two files to your source tree.
+	The "main program" is in src/main.cc, but this is merely meant
+	to be an example how to use the solver etc.
+
+1. How to build SudokuSolver / external dependencies
+
+	The buildsystem for SudokuSolver is scons (http://www.scons.org/),
+	an easy to use python-based build-system. This build-system was 
+	chosen because the author could not figure out (in reasonable time)
+	how to use the GNU autotools. Also, scons is used for the linux-
+	build of id-software's "DOOM 3", so it will be sufficient for
+	SudokuSolver by all means :) 
+
+	For unit testing, SudokuSolver uses googletest
+	(http://code.google.com/p/googletest/). Perhaps this will become
+	an optional dependency one day, but right now it is mandatory.
+	In order to build SudokuSolver, you should install googletest 
+	and make sure that the executable 'gtest-config' is in your
+	path - the rest will be figured out by the scons-scripts.
+
+	If you want to build SudokuSolver, go to the top-level-directory
+	(the one this README is in) and type 'scons'.
+
+2. How to run the testsuite
+
+	You have to build the whole project first by executing 'scons' 
+	in the top level directory. Then, you should stay in the top-
+	level-directory and type 'src/testBoard' in your shell.
+
+	It is important to stay in the top-level-directory, because
+	the testsuite will not find the test-boards in data/validBoards
+	otherwise.
+
+3. Where is the documentation?
+	
+	There is no real documentation yet, but it is the author's hope
+	that you will be satisfied with the comments in src/SudokuSolver.hh.
+	Just look at the public interfaces of the classes for reference.
+
+4. The smallest possible tutorial
+
+	In order to solve a board, you have to have an instance of the 
+	SudokuSolver::Board class:
+
+		SudokuSolver::Board board;
+
+	Then, you have to fill in cell values. There are two ways: 
+	1) You can read the whole board from a string:
+
+		board.fromString("..");
+	(the string should be 81 characters long, and '.' represents
+	an empty cell).
+
+	2) You can set each cell manually:
+
+		board.setCell(0,0, ONE);
+		board.setCell(1,0, NINE);
+		...
+
+	After that, you can solve the board:
+
+		solveBoard(board, lst, maxSolutions);
+
+	Here, lst should be a reference to a std::list<Board> and maxSolutions
+	is an int. In lst, all solutions are stored up to a maximum
+	of maxSolutions. If you set maxSolutions to 10 and get a list
+	lst with 5 entries, you can be sure that these 5 solutions are the only
+	ones.
+
+	If the board is not solvable, solveBoard() throws an InvalidBoardException.
+
+	Finally, if you want to print the board (in an arguably nice fashion) 
+	to stdout, you can use
+
+		coutBoard(board);
+		
+	Have fun! :)
