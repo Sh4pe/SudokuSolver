@@ -25,6 +25,7 @@
 #include <cstring>
 #include <iostream>
 #include <list>
+#include <typeinfo>
 
 /* TODO:
  * 	- check where you can skip the .hasValue()-Test - .value() works anyway
